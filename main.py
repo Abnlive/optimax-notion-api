@@ -3,10 +3,14 @@ from notion_client import Client
 import os
 from dotenv import load_dotenv
 
+# --------------------------------------------
+# Load environment variables
+# --------------------------------------------
 load_dotenv()
 
 app = FastAPI()
 
+# Initialize Notion client with your secret key
 notion = Client(auth=os.getenv("NOTION_API_KEY"))
 
 # ---- BRAND ROOT PAGES (page IDs from your URLs) ----
@@ -57,7 +61,6 @@ CATEGORY_STRUCTURE = {
     ],
 }
 
-
 # ---------- Helper functions ----------
 
 def list_child_pages(parent_page_id: str):
@@ -82,25 +85,16 @@ def list_child_pages(parent_page_id: str):
 
 
 def ensure_child_page(parent_page_id: str, title: str) -> str:
-    """
-    Ensure a child page with this title exists under parent_page_id.
-    Return the page ID.
-    """
-
-    # 1. Check for existing pages
+    """Ensure a child page with this title exists under parent_page_id and return its ID."""
     existing = list_child_pages(parent_page_id)
     if title in existing:
         return existing[title]["id"]
 
-    # 2. Create page using pages.create (correct method)
     page = notion.pages.create(
         parent={"page_id": parent_page_id},
         properties={
             "title": [
-                {
-                    "type": "text",
-                    "text": {"content": title}
-                }
+                {"type": "text", "text": {"content": title}}
             ]
         }
     )
@@ -128,11 +122,9 @@ def bootstrap_brand_structure():
         brand_result = {"categories": {}}
 
         for category_name, subpages in CATEGORY_STRUCTURE.items():
-            # Create / reuse category page under the brand
             category_page_id = ensure_child_page(brand_page_id, category_name)
-
-            # Create / reuse each subpage under the category
             created_or_found = []
+
             for subpage_title in subpages:
                 subpage_id = ensure_child_page(category_page_id, subpage_title)
                 created_or_found.append(
@@ -144,3 +136,21 @@ def bootstrap_brand_structure():
         summary[brand_name] = brand_result
 
     return summary
+
+
+@app.get("/read_page")
+def read_page(page_id: str):
+    """
+    Read a Notion page by its page_id and return its content.
+    """
+    try:
+        page = notion.pages.retrieve(page_id=page_id)
+
+        # Return simplified data for testing
+        return {
+            "page_id": page_id,
+            "content": page
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from notion_client import Client
 import os
 from dotenv import load_dotenv
@@ -140,17 +140,43 @@ def bootstrap_brand_structure():
 
 @app.get("/read_page")
 def read_page(page_id: str):
-    """
-    Read a Notion page by its page_id and return its content.
-    """
+    """Read a Notion page by its page_id and return its content."""
     try:
         page = notion.pages.retrieve(page_id=page_id)
+        return {"page_id": page_id, "content": page}
+    except Exception as e:
+        return {"error": str(e)}
 
-        # Return simplified data for testing
-        return {
-            "page_id": page_id,
-            "content": page
-        }
+
+@app.post("/append_to_page")
+async def append_to_page(request: Request):
+    """
+    Append a text block to a Notion page.
+    Expected JSON: { "page_id": "xxxx", "content": "Some text to append" }
+    """
+    data = await request.json()
+    page_id = data.get("page_id")
+    content = data.get("content")
+
+    if not page_id or not content:
+        return {"error": "Both 'page_id' and 'content' are required."}
+
+    try:
+        notion.blocks.children.append(
+            block_id=page_id,
+            children=[
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {"type": "text", "text": {"content": content}}
+                        ]
+                    },
+                }
+            ],
+        )
+        return {"status": "success", "page_id": page_id, "appended": content}
 
     except Exception as e:
         return {"error": str(e)}

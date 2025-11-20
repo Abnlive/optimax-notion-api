@@ -184,44 +184,59 @@ def health():
     """API heartbeat check"""
     return {"status": "OptiMax API fully operational"}
 
-@app.post("/bootstrap_workspace")
-async def bootstrap(request: Request):
-    """Rebuild the full workspace structure"""
-    body = await request.json()
-    reset = body.get("reset", False)
-    
+@app.post("/sync_structure")
+async def sync_structure(request: Request):
+    """
+    Synchronize the live Notion workspace structure with the expected model.
+    - Adds missing pages automatically
+    - Logs all discrepancies (added, missing, unexpected)
+    - Requests PIN for any major modification
+    """
+    data = await request.json()
+    change_type = data.get("change_type", "minor")
 
-    if reset:
-        log_action("RESET", "Workspace", "initiated")
-        children = list_child_pages(MAIN_PAGE_ID)
-        for title, block in children.items():
-            if title not in ["OptiMax Hub", "Command Center", "Activity Log"]:
-                try:
-                    notion.blocks.delete(block_id=block["id"])
-                    log_action("DELETE", title, "removed")
-                except Exception as e:
-                    log_action("DELETE_FAILED", title, str(e))
+    log_action("SYNC_INIT", "Workspace structure check started")
 
-    # Command Center
-    cc_id = ensure_child_page(MAIN_PAGE_ID, "Command Center")
-    for sec, subs in COMMAND_CENTER_STRUCTURE.items():
-        sec_id = ensure_child_page(cc_id, sec)
-        for cat, children in subs.items():
-            cat_id = ensure_child_page(sec_id, cat)
-            for ch in children:
-                ensure_child_page(cat_id, ch)
+    # Load current workspace snapshot
+    current_pages = list_child_pages(MAIN_PAGE_ID)
+    expected_roots = list(COMMAND_CENTER_STRUCTURE.keys()) + ["Command Center", "Activity Log", "OptiMax", "VETTA", "Prosperyn", "Nuvora"]
 
-    # Brand Pages
-    for brand in ["OptiMax", "VETTA", "Prosperyn", "Nuvora"]:
-        b_id = ensure_child_page(MAIN_PAGE_ID, brand)
-        for cat, subs in BRAND_CATEGORY_STRUCTURE.items():
-            c_id = ensure_child_page(b_id, cat)
-            for s in subs:
-                ensure_child_page(c_id, s)
+    added_pages = []
+    missing_pages = []
+    unexpected_pages = []
 
-    log_action("BOOTSTRAP", "Workspace", "complete")
-    print("✅ Workspace rebuilt successfully.")
-    return {"status": "structure built"}
+    # Check expected pages
+    for expected in expected_roots:
+        if expected not in current_pages:
+            ensure_child_page(MAIN_PAGE_ID, expected)
+            added_pages.append(expected)
+            log_action("CREATE_PAGE", expected, "added")
+
+    # Identify unexpected top-level pages
+    for current in current_pages.keys():
+        if current not in expected_roots:
+            unexpected_pages.append(current)
+            log_action("UNEXPECTED_PAGE", current, "not in structure")
+
+    # If unexpected pages are found, request PIN to delete or move them
+    if unexpected_pages:
+        confirm_pin("major", "Workspace Restructure")
+        log_action("REVIEW", "Unexpected pages require review", f"{unexpected_pages}")
+
+    summary = {
+        "added_pages": added_pages,
+        "missing_pages": missing_pages,
+        "unexpected_pages": unexpected_pages,
+        "status": "sync complete",
+        "timestamp": timestamp()
+    }
+
+    print("✅ Workspace sync complete.")
+    print(f"Added: {added_pages}, Unexpected: {unexpected_pages}")
+
+    log_action("SYNC_COMPLETE", "Workspace structure", f"Added {len(added_pages)} | Unexpected {len(unexpected_pages)}")
+    return summary
+
 
 @app.get("/list_hub_pages")
 def list_hub_pages():

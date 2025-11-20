@@ -158,6 +158,25 @@ async def bootstrap(request:Request):
     log_action("BOOTSTRAP","Workspace","complete")
     return {"status":"structure built (simulation)"}
 
+@app.get("/list_hub_pages")
+def list_hub_pages():
+    """List all top-level pages under the main OptiMax Hub"""
+    try:
+        pages = list_child_pages(MAIN_PAGE_ID)
+        return {"pages": list(pages.keys())}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/read_page")
+def read_page(identifier: str):
+    """Read a Notion page by name or ID and return its content"""
+    try:
+        pid = resolve_page_id(identifier)
+        page = notion.pages.retrieve(page_id=pid)
+        return {"page_id": pid, "title": identifier, "content": page}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/append_to_page")
 async def append_to_page(request:Request):
     """Append text block (requires auth)"""

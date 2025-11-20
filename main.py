@@ -24,7 +24,7 @@ app = FastAPI()
 
 notion = Client(auth=os.getenv("NOTION_API_KEY"))
 MAIN_PAGE_ID = os.getenv("MAIN_PAGE_ID")
-AGENT_AUTH_KEY = os.getenv("AGENT_AUTH_KEY")
+
 
 # -------------------------------------------------
 # Helper Functions
@@ -33,9 +33,6 @@ AGENT_AUTH_KEY = os.getenv("AGENT_AUTH_KEY")
 def timestamp():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def verify_permission(key: str):
-    if key != AGENT_AUTH_KEY:
-        raise PermissionError("Invalid authorization key.")
 
 def confirm_pin(change_type, target):
     if change_type == "major":
@@ -192,10 +189,7 @@ async def bootstrap(request: Request):
     """Rebuild the full workspace structure"""
     body = await request.json()
     reset = body.get("reset", False)
-    try:
-        verify_permission(body.get("auth_key"))
-    except PermissionError as e:
-        return {"error": str(e)}
+    
 
     if reset:
         log_action("RESET", "Workspace", "initiated")
@@ -340,7 +334,6 @@ async def create_template(request: Request):
     """Create a new template (planner or summary)"""
     data = await request.json()
     try:
-        verify_permission(data.get("auth_key"))
         ttype = data.get("template_type", "Planner")
         notion.pages.create(
             parent={"page_id": MAIN_PAGE_ID},

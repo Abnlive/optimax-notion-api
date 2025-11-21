@@ -37,7 +37,11 @@ def timestamp():
 def confirm_pin(change_type, target):
     if change_type == "major":
         entered = input(f"\n⚠️  MAJOR edit requested for '{target}'. Enter PIN to approve: ")
-        if entered != AGENT_AUTH_KEY:
+        agent_key = os.getenv("AGENT_AUTH_KEY", "")
+        if agent_key == "":
+            print("⚠️ No AGENT_AUTH_KEY set in environment; rejecting by default.")
+            raise PermissionError("Denied: no PIN configured.")
+        if entered != agent_key:
             print("❌ Edit denied: invalid PIN.")
             raise PermissionError("Denied: invalid PIN.")
         else:
@@ -58,6 +62,37 @@ def list_child_pages(parent_page_id: str):
             break
         cursor = resp.get("next_cursor")
     return results
+
+
+def log_action(action: str, target: str = "", status: str = "", level: str = "INFO"):
+    """Log an action to the Notion Activity Log (Daily Log) and print locally.
+
+    This helper is resilient: failures to write into Notion will only print a warning
+    to avoid crashing API routes that rely on logging.
+    """
+    try:
+        # Ensure Activity Log -> Daily Log exists
+        activity_log = ensure_child_page(MAIN_PAGE_ID, "Activity Log")
+        daily_log = ensure_child_page(activity_log, "Daily Log")
+
+        content = f"[{timestamp()}] {action} | target: {target} | status: {status}"
+
+        # Append a paragraph block to the Daily Log
+        notion.blocks.children.append(
+            block_id=daily_log,
+            children=[
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {"rich_text": [{"type": "text", "text": {"content": content}}]},
+                }
+            ],
+        )
+    except Exception as e:
+        # Do not raise here — logging should be best-effort only
+        print(f"⚠️ log_action failed: {e}")
+    finally:
+        print(f"LOG [{level}]: {action} | {target} | {status}")
 
 def create_page(parent_id: str, title: str):
     """Create a new Notion page under the given parent."""

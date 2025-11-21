@@ -75,50 +75,31 @@ def create_page(parent_id: str, title: str):
         log_action("CREATE_PAGE_FAILED", title, str(e))
         raise e
 
-def ensure_child_page(parent_id, title):
-    """Find or create subpage"""
-    resp = notion.blocks.children.list(block_id=parent_id)
-    for block in resp.get("results", []):
-        if block.get("type") == "child_page" and block["child_page"]["title"] == title:
-            return block["id"]
+def ensure_child_page(parent_page_id: str, title: str) -> str:
+    """Find or create subpage under a given parent page."""
+    # Check for existing child pages
+    try:
+        resp = notion.blocks.children.list(block_id=parent_page_id)
+        for block in resp.get("results", []):
+            if block.get("type") == "child_page" and block["child_page"]["title"] == title:
+                return block["id"]
+    except Exception as e:
+        print(f"⚠️ Could not list children for {parent_page_id}: {e}")
 
-    page = notion.pages.create(
-        parent={"page_id": parent_id},
-        properties={"title": [{"type": "text", "text": {"content": title}}]},
-    )
-    return page["id"]
+    # If not found, create a new child page
+    try:
+        page = notion.pages.create(
+            parent={"type": "page_id", "page_id": parent_page_id},
+            properties={
+                "title": [{"type": "text", "text": {"content": title}}],
+            },
+        )
+        print(f"✅ Created new page: {title}")
+        return page["id"]
+    except Exception as e:
+        print(f"❌ Failed to create page '{title}': {e}")
+        raise e
 
-def log_action(action, target, result="ok", requested_by="agent", executed_by="human"):
-    """Logs each action to Daily Log, and to Agent/Human logs."""
-    stamp = timestamp()
-    entry = (
-        f"[{stamp}] Requested by {requested_by.upper()}, Executed by {executed_by.upper()} | {action} → {target}: {result}"
-    )
-    print(entry)
-
-    activity_log = ensure_child_page(MAIN_PAGE_ID, "Activity Log")
-    daily_log = ensure_child_page(activity_log, "Daily Log")
-    agent_logs = ensure_child_page(activity_log, "Agent Logs")
-    human_logs = ensure_child_page(activity_log, "Human Logs")
-
-    notion.blocks.children.append(
-        block_id=daily_log,
-        children=[{
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {"rich_text": [{"type": "text", "text": {"content": entry}}]}
-        }],
-    )
-
-    target_log = agent_logs if executed_by == "agent" else human_logs
-    notion.blocks.children.append(
-        block_id=target_log,
-        children=[{
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {"rich_text": [{"type": "text", "text": {"content": entry}}]}
-        }],
-    )
 
 def create_version_snapshot(page_id, title=""):
     """Store version snapshot in Archive before any major change"""

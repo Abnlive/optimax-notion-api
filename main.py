@@ -13,17 +13,18 @@ from dotenv import load_dotenv
 import os, datetime, re, random
 from schemas import CreatePageRequest, AppendRequest, UpdateTitleRequest
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi import FastAPI
 
 # -------------------------------------------------
 # Environment Setup
 # -------------------------------------------------
 load_dotenv()
-app = FastAPI()
-# Enable CORS so external apps (like GPT) can call your API
-from fastapi.middleware.cors import CORSMiddleware
-
-
+app = FastAPI(
+    title="OptiMax Notion API",
+    version="1.0.0",
+    servers=[{"url": "https://api.optimaxmybiz.com"}],
+    description="The live OptiMax Notion API used for GPT integration.",
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins (you can lock this down later)

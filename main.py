@@ -23,6 +23,7 @@ app = FastAPI()
 # Enable CORS so external apps (like GPT) can call your API
 from fastapi.middleware.cors import CORSMiddleware
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins (you can lock this down later)
@@ -30,6 +31,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def force_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    return response
+
 
 notion = Client(auth=os.getenv("NOTION_API_KEY"))
 MAIN_PAGE_ID = os.getenv("MAIN_PAGE_ID")

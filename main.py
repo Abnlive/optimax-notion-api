@@ -324,6 +324,7 @@ def summarize_entries(entries, level="daily"):
 # Endpoints
 # -------------------------------------------------
 @app.get("/")
+@app.get("/health")
 def health():
     return {"status": "OptiMax API fully operational"}
 

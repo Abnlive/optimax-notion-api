@@ -19,7 +19,8 @@ import os, datetime, re, random
 # Load environment variables
 # -------------------------------------------------
 load_dotenv()
-
+print("🔑 Loaded Notion Key Prefix:", os.getenv("NOTION_API_KEY")[:10])
+print("📄 Main Page ID:", os.getenv("MAIN_PAGE_ID"))
 app = FastAPI()
 
 notion = Client(auth=os.getenv("NOTION_API_KEY"))

@@ -34,11 +34,11 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def force_cors_headers(request, call_next):
+async def log_incoming_requests(request, call_next):
+    print(f"📩 Incoming request: {request.method} {request.url}")
+    print(f"Headers: {request.headers}")
     response = await call_next(request)
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
     return response
 
 

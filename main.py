@@ -19,8 +19,7 @@ import os, datetime, re, random
 # Load environment variables
 # -------------------------------------------------
 load_dotenv()
-print("🔑 Loaded Notion Key Prefix:", os.getenv("NOTION_API_KEY")[:10])
-print("📄 Main Page ID:", os.getenv("MAIN_PAGE_ID"))
+
 app = FastAPI()
 
 notion = Client(auth=os.getenv("NOTION_API_KEY"))
@@ -59,6 +58,22 @@ def list_child_pages(parent_page_id: str):
             break
         cursor = resp.get("next_cursor")
     return results
+
+def create_page(parent_id: str, title: str):
+    """Create a new Notion page under the given parent."""
+    try:
+        page = notion.pages.create(
+            parent={"page_id": parent_id},
+            properties={
+                "title": [{"type": "text", "text": {"content": title}}]
+            }
+        )
+        log_action("CREATE_PAGE", title, "success")
+        print(f"✅ Created new page '{title}' under parent {parent_id}")
+        return page["id"]
+    except Exception as e:
+        log_action("CREATE_PAGE_FAILED", title, str(e))
+        raise e
 
 def ensure_child_page(parent_id, title):
     """Find or create subpage"""
@@ -185,6 +200,42 @@ def health():
     """API heartbeat check"""
     return {"status": "OptiMax API fully operational"}
 
+@app.post("/build_command_center_structure")
+def build_command_center_structure():
+    """
+    Safely build or complete the Command Center structure under the main OptiMax Hub.
+    Supports recursive nesting for unlimited depth.
+    Will not delete existing content — only adds missing sections or subpages.
+    """
+    log_action("BUILD_STRUCTURE_INIT", "Command Center", "starting")
+
+    try:
+        # Step 1️⃣ Locate or create the Command Center root
+        cc_id = ensure_child_page(MAIN_PAGE_ID, "Command Center")
+
+        # Step 2️⃣ Define recursive builder
+        def build_substructure(parent_id, structure):
+            if isinstance(structure, dict):
+                for section, sub in structure.items():
+                    section_id = ensure_child_page(parent_id, section)
+                    build_substructure(section_id, sub)
+            elif isinstance(structure, list):
+                for item in structure:
+                    ensure_child_page(parent_id, item)
+
+        # Step 3️⃣ Run recursive build using your global COMMAND_CENTER_STRUCTURE
+        build_substructure(cc_id, COMMAND_CENTER_STRUCTURE)
+
+        log_action("BUILD_STRUCTURE_COMPLETE", "Command Center", "recursive build complete")
+        print("✅ Command Center structure built successfully with full nesting support")
+        return {"status": "completed", "message": "Command Center structure built with nesting"}
+
+    except Exception as e:
+        log_action("BUILD_STRUCTURE_FAILED", "Command Center", str(e))
+        print(f"❌ Error building structure: {e}")
+        return {"error": str(e)}
+
+
 @app.post("/sync_structure")
 async def sync_structure(request: Request):
     """
@@ -237,6 +288,22 @@ async def sync_structure(request: Request):
 
     log_action("SYNC_COMPLETE", "Workspace structure", f"Added {len(added_pages)} | Unexpected {len(unexpected_pages)}")
     return summary
+
+from pydantic import BaseModel
+
+class CreatePageRequest(BaseModel):
+    parent_id: str = MAIN_PAGE_ID
+    title: str
+
+@app.post("/create_page")
+async def create_page_endpoint(data: CreatePageRequest):
+    """Create a new page anywhere in the workspace."""
+    try:
+        pid = create_page(data.parent_id, data.title)
+        return {"status": "success", "page_id": pid, "title": data.title}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 
 @app.get("/list_hub_pages")

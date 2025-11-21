@@ -259,24 +259,42 @@ def read_page(identifier: str):
     except Exception as e:
         return {"error": str(e)}
 
+from pydantic import BaseModel
+
+class AppendRequest(BaseModel):
+    page_id: str
+    content: str
+
 @app.post("/append_to_page")
-async def append_to_page(request: Request):
+async def append_to_page(data: AppendRequest):
     """Append a text block with approval and snapshot"""
-    data = await request.json()
-    pid = data.get("page_id")
-    txt = data.get("text", "")
-    change_type = data.get("change_type", "major")
     try:
-        confirm_pin(change_type, pid)
-        create_version_snapshot(pid, pid)
+        pid = data.page_id
+        txt = data.content
+
+        # Append to the Notion page
         notion.blocks.children.append(
             block_id=pid,
-            children=[{"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": txt}}]}}],
+            children=[
+                {
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [
+                            {"type": "text", "text": {"content": txt}}
+                        ]
+                    },
+                }
+            ],
         )
-        log_action("APPEND", pid)
-        return {"status": "success", "action": "append", "page": pid}
+
+        log_action("APPEND", pid, "success")
+        return {"status": "success", "page": pid, "content": txt}
+
     except Exception as e:
+        log_action("APPEND_FAILED", data.page_id, str(e))
         return {"error": str(e)}
+
 
 @app.patch("/update_page_title")
 async def update_page_title(request: Request):

@@ -148,10 +148,135 @@ def create_version_snapshot(page_id, title=""):
 
 
 # -------------------------------------------------
-# Structures
+# Page Structures
 # -------------------------------------------------
-COMMAND_CENTER_STRUCTURE = {...}
-BRAND_CATEGORY_STRUCTURE = {...}
+
+COMMAND_CENTER_STRUCTURE = {
+    "Planner": {
+        "Task Management": [
+            "Current Tasks",
+            "Urgent / Important Matrix",
+            "Today’s Priorities",
+            "Active Projects List",
+            "Blocked Items",
+            "Delegated / Agent Tasks",
+        ],
+        "Weekly Planning": [
+            "Weekly Objectives",
+            "Weekly Breakdown",
+            "Wins & Lessons",
+            "Review & Adjust",
+        ],
+        "Monthly / Quarterly Planning": [
+            "Monthly Goals",
+            "Quarterly Roadmap",
+            "OKRs / Key Targets",
+            "Brand-Level Initiatives",
+        ],
+        "Life & Business Planning": [
+            "1-Year Vision",
+            "12-Week Year Plan",
+            "Long-Term Vision & Identity",
+            "Personal Development Map",
+        ],
+    },
+    "Knowledge Base": {
+        "Global Knowledge": [
+            "Big Picture Strategy",
+            "System Architecture",
+            "Brand Ecosystem Map",
+            "Roles & Agent Definitions",
+        ],
+        "AI & Automation Knowledge": [
+            "Agent Structure",
+            "API Documentation",
+            "Workflows & Routes",
+            "System Prompts (Archived Versions)",
+        ],
+        "Personal Knowledge": [
+            "Your Story / Background",
+            "Personality Notes",
+            "ADHD Support Preferences",
+            "Work Style Notes",
+            "Rules for How Agents Should Work With You",
+        ],
+        "Policies & Standards": [
+            "Naming Standards",
+            "Folder Structure Rules",
+            "Brand Consistency Rules",
+            "Documentation SOPs",
+        ],
+        "Reference Library": [
+            "Glossary of Terms",
+            "Templates Library",
+            "Frameworks & Models",
+            "Resources & Links",
+        ],
+    },
+    "Activity Log": {
+        "Daily Log": [
+            "Time-Stamped Entries",
+            "Agent Actions",
+            "System Updates",
+            "Completed Tasks",
+        ],
+        "Weekly Summary": [
+            "Accomplishments",
+            "Problems Solved",
+            "Bottlenecks Identified",
+            "Next Steps",
+        ],
+        "Monthly Summary": [
+            "Key Metrics",
+            "Progress Toward Goals",
+            "Strategic Notes",
+        ],
+        "Agent Logs": [
+            "Command Center Agent Log",
+            "Brand Agent Logs (OptiMax, VETTA, Prosperyn, Nuvora)",
+            "Tech Agent Log",
+        ],
+    },
+}
+
+BRAND_CATEGORY_STRUCTURE = {
+    "Brand HQ": [
+        "Vision & Mission",
+        "Brand Identity (Voice, Tone, Story)",
+        "Market Positioning",
+        "Brand Guidelines",
+    ],
+    "Products & Services": [
+        "Core Offers",
+        "Pricing Structure",
+        "Service Delivery Process",
+        "Product Assets",
+    ],
+    "Operations & Systems": [
+        "Workflows",
+        "SOPs",
+        "Tools & Integrations",
+        "KPIs & Performance",
+    ],
+    "Marketing & Sales": [
+        "Funnels & Campaigns",
+        "Content & Messaging",
+        "Lead Management",
+        "Ads & Tracking",
+    ],
+    "Client Work": [
+        "Active Clients",
+        "Client Onboarding",
+        "Client Deliverables",
+        "Case Studies",
+    ],
+    "Development": [
+        "Websites",
+        "Apps & Software",
+        "Dev Environments & Credentials",
+        "Tech Stack Notes",
+    ],
+}
 
 
 def summarize_entries(entries, level="daily"):

@@ -12,12 +12,25 @@ from notion_client import Client
 from dotenv import load_dotenv
 import os, datetime, re, random
 from schemas import CreatePageRequest, AppendRequest, UpdateTitleRequest
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # -------------------------------------------------
 # Environment Setup
 # -------------------------------------------------
 load_dotenv()
 app = FastAPI()
+# Enable CORS so external apps (like GPT) can call your API
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (you can lock this down later)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 notion = Client(auth=os.getenv("NOTION_API_KEY"))
 MAIN_PAGE_ID = os.getenv("MAIN_PAGE_ID")
 
